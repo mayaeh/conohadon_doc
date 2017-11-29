@@ -1,0 +1,82 @@
+ufw default deny
+ufw logging low
+ufw allow 80/tcp
+ufw allow 443/tcp
+ufw allow proto tcp from xxx.xxx.xxx.xxx to any port 22
+(xxx.は ssh 接続している自身の IP アドレス
+
+apt update
+apt upgrade
+vi /etc/hostname 
+vi /etc/hosts
+
+(エラーメール配送用に postfix をインストールしておく (任意
+apt install postfix
+
+cd /etc/nginx/sites-enabled
+rm default 
+vi ../sites-available/mastodon_default
+(この時点ではまだ ssl_certificate と ssl_certificate_key の行を頭に # をつけコメントアウトしておく
+ln -s ../sites-available/mastodon_default mastodon
+systemctl stop nginx
+service nginx configtest
+
+cd ~
+git clone https://github.com/letsencrypt/letsencrypt.git
+cd letsencrypt/
+./letsencrypt-auto --help
+./letsencrypt-auto run -d foo.bar --nginx
+(foo.bar は自身の設定したインスタンスの URL で置換
+vi /etc/nginx/sites-enabled/mastodon 
+ssl_certificate と ssl_certificate_key の頭の # を外し、ファイルの末尾に追加された不要な同じ行を削除する
+service nginx configtest
+service nginx start
+cd /home/mastodon/
+curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add -
+echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list
+vi /etc/apt/sources.list.d/yarn.list 
+apt update
+apt upgrade
+apt autoclean
+apt autoremove
+apt install imagemagick ffmpeg libpq-dev libxml2-dev libxslt1-dev file git-core g++ libprotobuf-dev protobuf-compiler pkg-config nodejs gcc autoconf bison build-essential libssl-dev libyaml-dev libreadline6-dev zlib1g-dev libncurses5-dev libffi-dev libgdbm3 libgdbm-dev nginx redis-server redis-tools postgresql postgresql-contrib letsencrypt yarn libidn11-dev libicu-dev
+apt install imagemagick ffmpeg libpq-dev libxml2-dev libxslt1-dev file git-core g++ libprotobuf-dev protobuf-compiler pkg-config nodejs gcc autoconf bison build-essential libssl-dev libyaml-dev libreadline6-dev zlib1g-dev libncurses5-dev libffi-dev libgdbm3 libgdbm-dev nginx redis-server redis-tools postgresql postgresql-contrib yarn libidn11-dev libicu-dev
+cd /etc/systemd/system/
+ls
+(公式 Production-Guide からそれぞれのスクリプトをコピー＆ペースト
+vi mastodon-web.service
+vi mastodon-sidekiq.service
+vi mastodon-streaming.service
+(有効化
+systemctl enable /etc/systemd/system/mastodon-*.service
+
+cd ~
+(Mastodon 手動起動・終了用スクリプトを作っておく (任意
+vi mastodon-start.sh
+vi mastodon-stop.sh
+chmod 754 mastodon-st*
+
+su postgres
+psql -U postgres
+DROP DATABASE mastodon
+\q
+exit
+
+(Mastodon v2.0.0 には nodejs 6.x 系が必要だが、4.x 系がインストールされているためアンインストールし入れ替える
+apt remove nodejs
+rm /etc/apt/sources.list.d/nodesource.list 
+curl -sL https://deb.nodesource.com/setup_6.x | bash -
+apt install nodejs
+
+su mastodon
+
+
+(nginx の自動起動を有効化
+systemctl enable nginx.service
+
+
+su mastodon
+./mastodon-start.sh 
+top
+cd /home/mastodon/
+exit
